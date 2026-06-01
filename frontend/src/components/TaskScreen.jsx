@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 
 export default function TaskScreen({ onBack }) {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks]   = useState([]);
+  const [chores, setChores] = useState(null);
   const [newTitle, setNewTitle] = useState('');
   const inputRef = useRef(null);
 
@@ -11,13 +12,17 @@ export default function TaskScreen({ onBack }) {
       .then(setTasks)
       .catch(() => {});
 
+    fetch('/api/chores/today')
+      .then(r => r.json())
+      .then(setChores)
+      .catch(() => {});
+
     inputRef.current?.focus();
   }, []);
 
   const addTask = () => {
     const title = newTitle.trim();
     if (!title) return;
-
     fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -38,6 +43,22 @@ export default function TaskScreen({ onBack }) {
       .catch(() => {});
   };
 
+  const markChoreDone = (type, scheduledDate) => {
+    fetch('/api/chores/done', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, scheduledDate }),
+    })
+      .then(() => fetch('/api/chores/today'))
+      .then(r => r.json())
+      .then(setChores)
+      .catch(() => {});
+  };
+
+  const mainDone  = chores?.main?.done;
+  const smallDone = chores?.small?.done;
+  const showChores = chores && (!mainDone || !smallDone);
+
   return (
     <div style={s.screen}>
       <div style={s.header}>
@@ -46,15 +67,62 @@ export default function TaskScreen({ onBack }) {
       </div>
 
       <div style={s.list}>
-        {tasks.length === 0 && (
+
+        {/* ── Chores section ───────────────────────────────────── */}
+        {showChores && (
+          <div style={s.choreSection}>
+            <div style={s.sectionLabel}>Today's chores</div>
+
+            {!mainDone && (
+              <div style={s.row}>
+                <div style={s.choreInfo}>
+                  <span style={s.taskText}>{chores.main.title}</span>
+                  {chores.main.daysOverdue > 0 && (
+                    <span style={s.overdue}>↩ {chores.main.daysOverdue}d overdue</span>
+                  )}
+                </div>
+                <button
+                  style={s.doneBtn}
+                  onClick={() => markChoreDone('main', chores.main.scheduledDate)}
+                >✓</button>
+              </div>
+            )}
+
+            {!smallDone && (
+              <div style={s.row}>
+                <div style={s.choreInfo}>
+                  <span style={{ ...s.taskText, fontSize: 19, color: 'rgba(255,255,255,0.8)' }}>
+                    {chores.small.title}
+                  </span>
+                  {chores.small.daysOverdue > 0 && (
+                    <span style={s.overdue}>↩ {chores.small.daysOverdue}d overdue</span>
+                  )}
+                </div>
+                <button
+                  style={s.doneBtn}
+                  onClick={() => markChoreDone('small', chores.small.scheduledDate)}
+                >✓</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Tasks section ────────────────────────────────────── */}
+        {showChores && tasks.length > 0 && (
+          <div style={s.sectionLabel}>To do</div>
+        )}
+
+        {tasks.length === 0 && !showChores && (
           <p style={s.empty}>Nothing here. Add something below.</p>
         )}
+
         {tasks.map(task => (
           <div key={task.id} style={s.row}>
             <span style={s.taskText}>{task.title}</span>
             <button style={s.doneBtn} onClick={() => completeTask(task.id)}>✓</button>
           </div>
         ))}
+
       </div>
 
       <div style={s.addBar}>
@@ -107,13 +175,21 @@ const s = {
   list: {
     flex: 1,
     overflowY: 'auto',
-    padding: '4px 32px',
+    padding: '8px 32px',
   },
-  empty: {
-    color: 'rgba(255,255,255,0.28)',
-    fontSize: 18,
-    marginTop: 48,
-    textAlign: 'center',
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.35)',
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  choreSection: {
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    paddingBottom: 8,
+    marginBottom: 4,
   },
   row: {
     display: 'flex',
@@ -122,10 +198,26 @@ const s = {
     padding: '18px 0',
     borderBottom: '1px solid rgba(255,255,255,0.06)',
   },
-  taskText: {
+  choreInfo: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+  },
+  taskText: {
     fontSize: 22,
     lineHeight: 1.35,
+  },
+  overdue: {
+    fontSize: 12,
+    color: '#ff9f0a',
+    fontWeight: 600,
+  },
+  empty: {
+    color: 'rgba(255,255,255,0.28)',
+    fontSize: 18,
+    marginTop: 48,
+    textAlign: 'center',
   },
   doneBtn: {
     flexShrink: 0,

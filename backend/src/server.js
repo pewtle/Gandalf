@@ -24,6 +24,36 @@ app.use('/photos', express.static(photosDir));
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDist));
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+// Use local date so midnight on the Pi doesn't jump to yesterday in UTC
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const _getRotaTask = db.prepare('SELECT title FROM chores_rota WHERE type = ? AND day_of_week = ?');
+const _isDone      = db.prepare('SELECT 1 FROM chores_log WHERE type = ? AND scheduled_date = ? AND done_at IS NOT NULL');
+
+// Walk back up to 7 days to find the oldest uncompleted scheduled chore.
+// That's what shows today — rolled-over tasks persist until ticked off.
+function getActiveChore(type) {
+  const today = new Date();
+  for (let daysBack = 6; daysBack >= 0; daysBack--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - daysBack);
+    const dateStr = localDateStr(d);
+    const row = _getRotaTask.get(type, d.getDay());
+    if (!row) continue;
+    if (!_isDone.get(type, dateStr)) {
+      return { title: row.title, scheduledDate: dateStr, daysOverdue: daysBack };
+    }
+  }
+  // Everything done — return today's in a done state
+  const dateStr = localDateStr(today);
+  const row = _getRotaTask.get(type, today.getDay());
+  return { title: row?.title ?? null, scheduledDate: dateStr, daysOverdue: 0, done: true };
+}
+
 // ── API ──────────────────────────────────────────────────────────────────────
 
 app.get('/api/photos', (_req, res) => {
@@ -61,6 +91,24 @@ app.patch('/api/tasks/:id/complete', (req, res) => {
 
 app.delete('/api/tasks/:id', (req, res) => {
   db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/chores/today', (_req, res) => {
+  res.json({
+    main:  getActiveChore('main'),
+    small: getActiveChore('small'),
+  });
+});
+
+app.post('/api/chores/done', (req, res) => {
+  const { type, scheduledDate } = req.body || {};
+  if (!type || !scheduledDate) {
+    return res.status(400).json({ error: 'type and scheduledDate are required' });
+  }
+  db.prepare(
+    'INSERT OR REPLACE INTO chores_log (type, scheduled_date, done_at) VALUES (?, ?, datetime("now"))'
+  ).run(type, scheduledDate);
   res.json({ ok: true });
 });
 
