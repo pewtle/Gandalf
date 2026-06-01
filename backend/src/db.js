@@ -33,28 +33,28 @@ db.exec(`
   );
 `);
 
-// Seed default rota for a 3-bed semi (runs once, skipped if rows already exist)
-const rotaEmpty = db.prepare('SELECT COUNT(*) AS n FROM chores_rota').get().n === 0;
-if (rotaEmpty) {
-  const insert = db.prepare('INSERT INTO chores_rota (type, day_of_week, title) VALUES (?, ?, ?)');
-  db.transaction(() => {
-    // Main task per day  (0 = Sun … 6 = Sat)
-    insert.run('main', 0, 'Hoover upstairs');
-    insert.run('main', 1, 'Put laundry on');
-    insert.run('main', 2, 'Mop kitchen & hallway');
-    insert.run('main', 3, 'Clean bathrooms');
-    insert.run('main', 4, 'Hoover downstairs');
-    insert.run('main', 5, 'Change bed linen');
-    insert.run('main', 6, 'Wipe down kitchen');
-    // Small job per day
-    insert.run('small', 0, 'Take out bins');
-    insert.run('small', 1, 'Wipe kitchen counters');
-    insert.run('small', 2, 'Clean mirrors');
-    insert.run('small', 3, 'Fold & put away laundry');
-    insert.run('small', 4, 'Tidy kitchen surfaces');
-    insert.run('small', 5, 'Wipe hob & microwave');
-    insert.run('small', 6, 'Tidy living room');
-  })();
-}
+// Always apply the canonical rota so edits here take effect on next restart.
+// Sunday (0) is a rest day — no row means no chores that day.
+const _upsertRota = db.prepare('INSERT OR REPLACE INTO chores_rota (type, day_of_week, title) VALUES (?, ?, ?)');
+const _clearDay   = db.prepare('DELETE FROM chores_rota WHERE day_of_week = ?');
+
+db.transaction(() => {
+  _clearDay.run(0); // Sunday — rest day
+
+  //          type     day  title
+  _upsertRota.run('main',  1, 'Put laundry on');
+  _upsertRota.run('main',  2, 'Hoover downstairs');
+  _upsertRota.run('main',  3, 'Mop kitchen & hallway');
+  _upsertRota.run('main',  4, 'Hoover upstairs');
+  _upsertRota.run('main',  5, 'Clean bathrooms');
+  _upsertRota.run('main',  6, 'Tidy living room');
+
+  _upsertRota.run('small', 1, 'Wipe kitchen counters');
+  _upsertRota.run('small', 2, 'Fold & put away laundry');
+  _upsertRota.run('small', 3, 'Wipe hob & microwave');
+  _upsertRota.run('small', 4, 'Clean mirrors');
+  _upsertRota.run('small', 5, 'Change bed linen');
+  _upsertRota.run('small', 6, 'Take out bins');
+})();
 
 module.exports = db;
