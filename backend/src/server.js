@@ -7,7 +7,6 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const db = require('./db');
-const { startBot } = require('./bot');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -80,9 +79,3 @@ app.get('*', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`Gandalf backend running on http://localhost:${PORT}`);
 });
-
-if (process.env.TELEGRAM_BOT_TOKEN) {
-  startBot(db);
-} else {
-  console.log('TELEGRAM_BOT_TOKEN not set — bot disabled');
-}
