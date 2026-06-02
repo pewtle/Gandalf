@@ -3,15 +3,14 @@
 The Pi runs as a headless server — no screen attached. A wall-mounted iPad or
 tablet opens the display in its browser.
 
-Tested on Raspberry Pi 4 (2 GB+) running Raspberry Pi OS Lite (64-bit, Bookworm).
-A Pi 3B+ works fine for this use case.
+Tested on Raspberry Pi 4 running Raspberry Pi OS (64-bit, Bookworm).
 
 ---
 
-## 1. Install Raspberry Pi OS Lite
+## 1. Install Raspberry Pi OS
 
-Use **Raspberry Pi Imager** to flash **Raspberry Pi OS Lite (64-bit)** — no
-desktop environment needed. In the Imager's advanced settings:
+Use **Raspberry Pi Imager** to flash **Raspberry Pi OS (64-bit)**. In the
+Imager's advanced settings:
 
 - Set a hostname, e.g. `gandalf`
 - Enable SSH
