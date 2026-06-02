@@ -1,23 +1,39 @@
 # Deploying Gandalf on a Raspberry Pi
 
-Tested on Raspberry Pi 4 (2 GB+) running Raspberry Pi OS (64-bit, Bookworm).
-A Pi 3B+ will work but is tighter on memory.
+The Pi runs as a headless server — no screen attached. A wall-mounted iPad or
+tablet opens the display in its browser.
+
+Tested on Raspberry Pi 4 (2 GB+) running Raspberry Pi OS Lite (64-bit, Bookworm).
+A Pi 3B+ works fine for this use case.
 
 ---
 
-## 1. Install Node.js
+## 1. Install Raspberry Pi OS Lite
 
-Raspberry Pi OS ships with an old Node. Install a current LTS version:
+Use **Raspberry Pi Imager** to flash **Raspberry Pi OS Lite (64-bit)** — no
+desktop environment needed. In the Imager's advanced settings:
+
+- Set a hostname, e.g. `gandalf`
+- Enable SSH
+- Configure your Wi-Fi
+
+The Pi will be reachable at `gandalf.local` on your network once booted.
+
+---
+
+## 2. SSH in and install Node.js
 
 ```bash
+ssh pi@gandalf.local
+
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
+sudo apt install -y nodejs git
 node -v  # should print v20.x.x
 ```
 
 ---
 
-## 2. Clone the repo
+## 3. Clone the repo
 
 ```bash
 cd ~
@@ -27,18 +43,17 @@ cd Gandalf
 
 ---
 
-## 3. Configure the backend
+## 4. Configure the backend
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env if you want a different port (default: 3001)
 npm install
 ```
 
 ---
 
-## 4. Build the frontend
+## 5. Build the frontend
 
 ```bash
 cd ../frontend
@@ -49,20 +64,18 @@ npm run build
 
 ---
 
-## 5. Add photos
+## 6. Add photos
 
-Drop `.jpg`, `.png`, or `.webp` files into the `photos/` directory.
-The screensaver picks them up on next restart.
+Copy photos to the `photos/` directory (from another machine on the network
+or via `scp`):
 
 ```bash
-cp /path/to/your/photos/*.jpg ~/Gandalf/photos/
+scp ~/Pictures/wall-photos/*.jpg pi@gandalf.local:~/Gandalf/photos/
 ```
 
 ---
 
-## 6. Run the backend as a systemd service (auto-start on boot)
-
-Create the service file:
+## 7. Run the backend as a systemd service (auto-start on boot)
 
 ```bash
 sudo nano /etc/systemd/system/gandalf.service
@@ -72,7 +85,7 @@ Paste:
 
 ```ini
 [Unit]
-Description=Gandalf wall display backend
+Description=Gandalf wall display
 After=network.target
 
 [Service]
@@ -87,51 +100,38 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Enable and start it:
+Enable and start:
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable gandalf
 sudo systemctl start gandalf
 
-# Check it's running
+# Verify
 sudo systemctl status gandalf
+# Gandalf is now reachable at http://gandalf.local:3001
 ```
 
 ---
 
-## 7. Launch Chromium in kiosk mode on boot
+## 8. Set up the wall tablet
 
-Disable screen blanking and open the display full-screen when the desktop loads.
+### iPad (recommended)
 
-```bash
-mkdir -p ~/.config/lxsession/LXDE-pi
-nano ~/.config/lxsession/LXDE-pi/autostart
-```
+1. Open **Safari** and go to `http://gandalf.local:3001`
+2. Tap the share icon → **Add to Home Screen** — this opens it as a full-screen
+   web app with no browser chrome
+3. Open the app from the home screen to verify it fills the display
+4. To lock it so it can't be accidentally navigated away from:
+   **Settings → Accessibility → Guided Access** → turn on, then triple-click
+   the home/side button while in the app to start a session
 
-Paste:
+### Android tablet
 
-```
-@lxpanel --profile LXDE-pi
-@pcmanfm --desktop --profile LXDE-pi
-@xset s off
-@xset -dpms
-@xset s noblank
-@chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run http://localhost:3001
-```
-
-> The `xset` lines prevent the screen from going blank or turning off.
-
----
-
-## 8. Reboot and verify
-
-```bash
-sudo reboot
-```
-
-Gandalf should appear full-screen after boot. The backend starts as a service
-before the desktop loads, so the display is ready by the time Chromium opens.
+1. Open Chrome and go to `http://gandalf.local:3001`
+2. Tap the menu → **Add to Home Screen**
+3. To lock: **Settings → Security → Screen Pinning** (name varies by
+   manufacturer) — pin the Gandalf app
 
 ---
 
@@ -139,20 +139,17 @@ before the desktop loads, so the display is ready by the time Chromium opens.
 
 | Task | Command |
 |---|---|
-| View backend logs | `sudo journalctl -u gandalf -f` |
+| View live logs | `sudo journalctl -u gandalf -f` |
 | Restart backend | `sudo systemctl restart gandalf` |
 | Update to latest | `git pull && cd frontend && npm run build && sudo systemctl restart gandalf` |
-| Check backend status | `sudo systemctl status gandalf` |
+| Copy new photos | `scp photos/*.jpg pi@gandalf.local:~/Gandalf/photos/` |
 
 ---
 
-## Rotate the display (if needed)
+## Display stays on
 
-If the monitor is mounted in portrait orientation, add to `/boot/firmware/config.txt`:
+Tablets will dim and sleep by default. Prevent this:
 
-```
-display_rotate=1   # 90° clockwise
-# display_rotate=3 # 90° counter-clockwise
-```
-
-Then reboot.
+- **iPad**: Settings → Display & Brightness → Auto-Lock → **Never**
+- **Android**: Settings → Display → Screen timeout → **Never** (or use a
+  kiosk/stay-awake app)
