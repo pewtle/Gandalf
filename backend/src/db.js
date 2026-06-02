@@ -31,6 +31,15 @@ db.exec(`
     done_at        TEXT,
     UNIQUE(type, scheduled_date)
   );
+
+  CREATE TABLE IF NOT EXISTS appliances (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    name             TEXT    NOT NULL,
+    emoji            TEXT    NOT NULL,
+    status           TEXT    NOT NULL DEFAULT 'empty',
+    started_at       TEXT,
+    duration_minutes INTEGER NOT NULL DEFAULT 60
+  );
 `);
 
 // Always apply the canonical rota so edits here take effect on next restart.
@@ -56,5 +65,16 @@ db.transaction(() => {
   _upsertRota.run('small', 5, 'Change bed linen');
   _upsertRota.run('small', 6, 'Take out bins');
 })();
+
+// Seed appliances once
+const applianceCount = db.prepare('SELECT COUNT(*) AS n FROM appliances').get().n;
+if (applianceCount === 0) {
+  const ins = db.prepare('INSERT INTO appliances (name, emoji, duration_minutes) VALUES (?, ?, ?)');
+  db.transaction(() => {
+    ins.run('Washing machine', '🧺', 60);
+    ins.run('Dryer',           '🌀', 60);
+    ins.run('Dishwasher',      '🍽️', 60);
+  })();
+}
 
 module.exports = db;

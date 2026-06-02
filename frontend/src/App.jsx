@@ -3,6 +3,7 @@ import Screensaver from './components/Screensaver';
 import WeatherStrip from './components/WeatherStrip';
 import TaskOverlay from './components/TaskOverlay';
 import ChoreOverlay from './components/ChoreOverlay';
+import ApplianceStrip from './components/ApplianceStrip';
 import TaskScreen from './components/TaskScreen';
 import './App.css';
 
@@ -22,6 +23,7 @@ export default function App() {
       <Screensaver />
       <WeatherStrip />
       <TaskOverlay />
+      <ApplianceStrip />
       <ChoreOverlay />
     </div>
   );

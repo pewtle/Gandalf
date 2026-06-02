@@ -112,6 +112,36 @@ app.post('/api/chores/done', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Appliances ───────────────────────────────────────────────────────────────
+
+app.get('/api/appliances', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM appliances ORDER BY id').all());
+});
+
+app.post('/api/appliances/:id/start', (req, res) => {
+  db.prepare('UPDATE appliances SET status = ?, started_at = ? WHERE id = ?')
+    .run('running', new Date().toISOString(), req.params.id);
+  res.json(db.prepare('SELECT * FROM appliances WHERE id = ?').get(req.params.id));
+});
+
+app.post('/api/appliances/:id/done', (req, res) => {
+  db.prepare('UPDATE appliances SET status = ? WHERE id = ?').run('done', req.params.id);
+  res.json(db.prepare('SELECT * FROM appliances WHERE id = ?').get(req.params.id));
+});
+
+app.post('/api/appliances/:id/reset', (req, res) => {
+  db.prepare('UPDATE appliances SET status = ?, started_at = NULL WHERE id = ?')
+    .run('empty', req.params.id);
+  res.json(db.prepare('SELECT * FROM appliances WHERE id = ?').get(req.params.id));
+});
+
+app.patch('/api/appliances/:id/duration', (req, res) => {
+  const { minutes } = req.body || {};
+  if (!minutes || minutes < 1) return res.status(400).json({ error: 'minutes required' });
+  db.prepare('UPDATE appliances SET duration_minutes = ? WHERE id = ?').run(minutes, req.params.id);
+  res.json({ ok: true });
+});
+
 // ── Weather ───────────────────────────────────────────────────────────────────
 
 let _weatherCache = { data: null, at: 0 };
