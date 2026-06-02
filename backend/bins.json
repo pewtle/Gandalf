@@ -1,0 +1,17 @@
+{
+  "collections": [
+    {
+      "name": "General waste",
+      "emoji": "🗑️",
+      "dayOfWeek": 5,
+      "frequency": "weekly"
+    },
+    {
+      "name": "Recycling",
+      "emoji": "♻️",
+      "dayOfWeek": 5,
+      "frequency": "fortnightly",
+      "weekParity": "even"
+    }
+  ]
+}

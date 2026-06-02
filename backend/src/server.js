@@ -112,7 +112,89 @@ app.post('/api/chores/done', (req, res) => {
   res.json({ ok: true });
 });
 
-// Fall back to frontend for client-side routing
+// ── Weather ───────────────────────────────────────────────────────────────────
+
+let _weatherCache = { data: null, at: 0 };
+const WEATHER_TTL = 30 * 60 * 1000;
+
+app.get('/api/weather', async (_req, res) => {
+  const { LATITUDE: lat, LONGITUDE: lon } = process.env;
+  if (!lat || !lon) {
+    return res.status(503).json({ error: 'LATITUDE and LONGITUDE not set in .env' });
+  }
+
+  if (_weatherCache.data && Date.now() - _weatherCache.at < WEATHER_TTL) {
+    return res.json(_weatherCache.data);
+  }
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lon}` +
+      `&current=temperature_2m,weathercode,precipitation` +
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode` +
+      `&timezone=auto&forecast_days=2`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+    _weatherCache = { data, at: Date.now() };
+    res.json(data);
+  } catch {
+    if (_weatherCache.data) return res.json(_weatherCache.data); // serve stale on error
+    res.status(503).json({ error: 'Weather unavailable' });
+  }
+});
+
+// ── Bins ──────────────────────────────────────────────────────────────────────
+
+const binsConfigPath = path.join(__dirname, '../bins.json');
+let binsConfig = { collections: [] };
+try {
+  binsConfig = JSON.parse(fs.readFileSync(binsConfigPath, 'utf8'));
+} catch {
+  console.warn('bins.json not found or invalid — bin reminders disabled');
+}
+
+function isoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86_400_000 + 1) / 7);
+}
+
+function isCollectionDay(col, date) {
+  if (date.getDay() !== col.dayOfWeek) return false;
+  if (col.frequency === 'weekly') return true;
+  const week = isoWeek(date);
+  return col.weekParity === 'even' ? week % 2 === 0 : week % 2 !== 0;
+}
+
+app.get('/api/bins', (_req, res) => {
+  const now   = new Date();
+  const today = new Date(now);
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Show all day if it's collection day
+  const todayHits = binsConfig.collections.filter(c => isCollectionDay(c, today));
+  if (todayHits.length) {
+    return res.json({ reminder: true, isToday: true,
+      collections: todayHits.map(({ name, emoji }) => ({ name, emoji })) });
+  }
+
+  // Show from 18:00 the evening before
+  if (now.getHours() >= 18) {
+    const tomorrowHits = binsConfig.collections.filter(c => isCollectionDay(c, tomorrow));
+    if (tomorrowHits.length) {
+      return res.json({ reminder: true, isToday: false,
+        collections: tomorrowHits.map(({ name, emoji }) => ({ name, emoji })) });
+    }
+  }
+
+  res.json({ reminder: false, isToday: false, collections: [] });
+});
+
+
 app.get('*', (_req, res) => {
   const index = path.join(frontendDist, 'index.html');
   if (fs.existsSync(index)) {

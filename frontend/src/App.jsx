@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Screensaver from './components/Screensaver';
+import WeatherStrip from './components/WeatherStrip';
 import TaskOverlay from './components/TaskOverlay';
 import ChoreOverlay from './components/ChoreOverlay';
 import TaskScreen from './components/TaskScreen';
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <div className="app" onClick={() => setView('tasks')} style={{ cursor: 'pointer' }}>
       <Screensaver />
+      <WeatherStrip />
       <TaskOverlay />
       <ChoreOverlay />
     </div>
