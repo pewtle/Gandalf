@@ -51,15 +51,15 @@ export default function TaskScreen({ onBack }) {
   };
 
   const markChoreDone = (type, scheduledDate) => {
+    setChores(prev => ({ ...prev, [type]: { ...prev[type], done: true } }));
     fetch('/api/chores/done', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, scheduledDate }),
     })
-      .then(() => fetch('/api/chores/today'))
-      .then(r => r.json())
-      .then(setChores)
-      .catch(() => {});
+      .catch(() => {
+        fetch('/api/chores/today').then(r => r.json()).then(setChores).catch(() => {});
+      });
   };
 
   const mainDone  = chores?.main?.done;
