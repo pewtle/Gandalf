@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 
 export default function TaskScreen({ onBack }) {
-  const [tasks, setTasks]       = useState([]);
-  const [chores, setChores]     = useState(null);
-  const [newTitle, setNewTitle] = useState('');
-  const [showInput, setShowInput] = useState(false);
+  const [tasks, setTasks]           = useState([]);
+  const [chores, setChores]         = useState(null);
+  const [newTitle, setNewTitle]     = useState('');
+  const [showInput, setShowInput]   = useState(false);
+  const [completing, setCompleting] = useState(new Set());
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -43,9 +44,16 @@ export default function TaskScreen({ onBack }) {
   };
 
   const completeTask = (id) => {
+    setCompleting(prev => new Set(prev).add(id));
     fetch(`/api/tasks/${id}/complete`, { method: 'PATCH' })
-      .then(() => setTasks(prev => prev.filter(t => t.id !== id)))
-      .catch(() => {});
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        setTasks(prev => prev.filter(t => t.id !== id));
+      })
+      .catch(err => {
+        console.error('Failed to complete task:', err);
+        setCompleting(prev => { const s = new Set(prev); s.delete(id); return s; });
+      });
   };
 
   const markChoreDone = (type, scheduledDate) => {
@@ -126,7 +134,11 @@ export default function TaskScreen({ onBack }) {
         {tasks.map(task => (
           <div key={task.id} style={s.row}>
             <span style={s.taskText}>{task.title}</span>
-            <button style={s.doneBtn} onClick={() => completeTask(task.id)}>✓</button>
+            <button
+              style={{ ...s.doneBtn, opacity: completing.has(task.id) ? 0.45 : 1 }}
+              disabled={completing.has(task.id)}
+              onClick={() => completeTask(task.id)}
+            >✓</button>
           </div>
         ))}
 

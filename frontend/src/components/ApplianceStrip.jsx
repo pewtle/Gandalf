@@ -269,7 +269,7 @@ export default function ApplianceStrip() {
       <div
         style={{
           position: 'absolute',
-          bottom: 44,
+          bottom: 64,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(0, 0, 0, 0.62)',

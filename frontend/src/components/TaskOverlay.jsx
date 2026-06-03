@@ -37,7 +37,7 @@ export default function TaskOverlay() {
 const styles = {
   panel: {
     position: 'absolute',
-    bottom: 196,
+    bottom: 216,
     left: 44,
     background: 'rgba(0, 0, 0, 0.62)',
     backdropFilter: 'blur(14px)',
