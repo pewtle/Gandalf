@@ -23,7 +23,7 @@ The Pi will be reachable at `gandalf.local` on your network once booted.
 ## 2. SSH in and install Node.js
 
 ```bash
-ssh pi@gandalf.local
+ssh YOUR_USERNAME@gandalf.local
 
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs git
@@ -69,7 +69,7 @@ Copy photos to the `photos/` directory (from another machine on the network
 or via `scp`):
 
 ```bash
-scp ~/Pictures/wall-photos/*.jpg pi@gandalf.local:~/Gandalf/photos/
+scp ~/Pictures/wall-photos/*.jpg YOUR_USERNAME@gandalf.local:~/Gandalf/photos/
 ```
 
 ---
@@ -89,8 +89,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/Gandalf/backend
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/Gandalf/backend
 ExecStart=/usr/bin/node src/server.js
 Restart=on-failure
 RestartSec=5
@@ -141,7 +141,7 @@ sudo systemctl status gandalf
 | View live logs | `sudo journalctl -u gandalf -f` |
 | Restart backend | `sudo systemctl restart gandalf` |
 | Update to latest | `git pull && cd frontend && npm run build && sudo systemctl restart gandalf` |
-| Copy new photos | `scp photos/*.jpg pi@gandalf.local:~/Gandalf/photos/` |
+| Copy new photos | `scp photos/*.jpg YOUR_USERNAME@gandalf.local:~/Gandalf/photos/` |
 
 ---
 
