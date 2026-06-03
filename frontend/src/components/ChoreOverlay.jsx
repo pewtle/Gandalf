@@ -53,7 +53,7 @@ export default function ChoreOverlay() {
 const s = {
   panel: {
     position: 'absolute',
-    bottom: 44,
+    bottom: 196,
     right: 44,
     background: 'rgba(0, 0, 0, 0.62)',
     backdropFilter: 'blur(14px)',

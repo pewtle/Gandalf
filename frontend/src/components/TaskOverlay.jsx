@@ -37,7 +37,7 @@ export default function TaskOverlay() {
 const styles = {
   panel: {
     position: 'absolute',
-    bottom: 44,
+    bottom: 196,
     left: 44,
     background: 'rgba(0, 0, 0, 0.62)',
     backdropFilter: 'blur(14px)',
@@ -46,7 +46,7 @@ const styles = {
     borderRadius: 16,
     padding: '14px 22px 18px',
     color: '#fff',
-    maxWidth: 440,
+    maxWidth: 320,
     // Keep the panel from becoming interactive / blocking photo clicks
     pointerEvents: 'none',
     userSelect: 'none',

@@ -276,7 +276,7 @@ export default function ApplianceStrip() {
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 20,
+          borderRadius: 16,
           padding: '16px 28px 14px',
           display: 'flex',
           gap: 28,
