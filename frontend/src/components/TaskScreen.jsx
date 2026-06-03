@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 
 export default function TaskScreen({ onBack }) {
-  const [tasks, setTasks]   = useState([]);
-  const [chores, setChores] = useState(null);
+  const [tasks, setTasks]       = useState([]);
+  const [chores, setChores]     = useState(null);
   const [newTitle, setNewTitle] = useState('');
+  const [showInput, setShowInput] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -16,9 +17,13 @@ export default function TaskScreen({ onBack }) {
       .then(r => r.json())
       .then(setChores)
       .catch(() => {});
-
-    inputRef.current?.focus();
   }, []);
+
+  const openInput = () => {
+    setShowInput(true);
+    // Defer focus so the element has rendered
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
 
   const addTask = () => {
     const title = newTitle.trim();
@@ -32,7 +37,7 @@ export default function TaskScreen({ onBack }) {
       .then(task => {
         setTasks(prev => [...prev, task]);
         setNewTitle('');
-        inputRef.current?.focus();
+        setShowInput(false);
       })
       .catch(() => {});
   };
@@ -64,6 +69,8 @@ export default function TaskScreen({ onBack }) {
       <div style={s.header}>
         <button style={s.backBtn} onClick={onBack}>←</button>
         <span style={s.heading}>Tasks</span>
+        <div style={{ flex: 1 }} />
+        <button style={s.addTaskBtn} onClick={openInput}>+ Add task</button>
       </div>
 
       <div style={s.list}>
@@ -125,17 +132,22 @@ export default function TaskScreen({ onBack }) {
 
       </div>
 
-      <div style={s.addBar}>
-        <input
-          ref={inputRef}
-          style={s.input}
-          value={newTitle}
-          onChange={e => setNewTitle(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addTask()}
-          placeholder="Add a task…"
-        />
-        <button style={s.addBtn} onClick={addTask}>+</button>
-      </div>
+      {showInput && (
+        <div style={s.addBar}>
+          <input
+            ref={inputRef}
+            style={s.input}
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') addTask();
+              if (e.key === 'Escape') { setShowInput(false); setNewTitle(''); }
+            }}
+            placeholder="What needs doing?"
+          />
+          <button style={s.addBtn} onClick={addTask}>Add</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -166,6 +178,16 @@ const s = {
     lineHeight: 1,
     cursor: 'pointer',
     padding: '0 8px 0 0',
+  },
+  addTaskBtn: {
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: 10,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 500,
+    padding: '10px 18px',
+    cursor: 'pointer',
   },
   heading: {
     fontSize: 26,
@@ -252,15 +274,14 @@ const s = {
   },
   addBtn: {
     flexShrink: 0,
-    width: 54,
-    height: 54,
     alignSelf: 'center',
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.14)',
     borderRadius: 12,
     color: '#fff',
-    fontSize: 30,
-    lineHeight: 1,
+    fontSize: 18,
+    fontWeight: 600,
+    padding: '14px 22px',
     cursor: 'pointer',
   },
 };
